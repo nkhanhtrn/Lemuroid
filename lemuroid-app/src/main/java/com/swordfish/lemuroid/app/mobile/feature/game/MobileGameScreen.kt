@@ -1,6 +1,7 @@
 package com.swordfish.lemuroid.app.mobile.feature.game
 
 import android.graphics.RectF
+import android.view.MotionEvent
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Arrangement
@@ -140,6 +141,9 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
 
             val fullScreenPosition = remember { mutableStateOf<Rect?>(null) }
             val viewportPosition = remember { mutableStateOf<Rect?>(null) }
+            val leftPadTopPx = remember { mutableStateOf<Float?>(null) }
+            val rightPadTopPx = remember { mutableStateOf<Float?>(null) }
+            val touchViewport = remember { mutableStateOf<RectF?>(null) }
 
             AndroidView(
                 modifier =
@@ -153,18 +157,56 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
 
             val fullPos = fullScreenPosition.value
             val viewPos = viewportPosition.value
+            val leftPadTop = leftPadTopPx.value
+            val rightPadTop = rightPadTopPx.value
 
-            LaunchedEffect(fullPos, viewPos) {
+            LaunchedEffect(fullPos, viewPos, leftPadTop, rightPadTop, usePortraitOverlay) {
                 val gameView = viewModel.retroGameView.retroGameViewFlow()
                 if (fullPos == null || viewPos == null) return@LaunchedEffect
-                val viewport =
+                val baseViewport =
                     RectF(
                         (viewPos.left - fullPos.left) / fullPos.width,
                         (viewPos.top - fullPos.top) / fullPos.height,
                         (viewPos.right - fullPos.left) / fullPos.width,
                         (viewPos.bottom - fullPos.top) / fullPos.height,
                     )
+
+                // Dual-screen portrait: shrink the video viewport so it ends above
+                // the highest pad group; the bottom screen is never covered.
+                val viewport =
+                    if (usePortraitOverlay) {
+                        val padTopPx = listOfNotNull(leftPadTop, rightPadTop).minOrNull()
+                        val fraction =
+                            if (padTopPx != null) {
+                                (padTopPx - fullPos.top) / fullPos.height
+                            } else {
+                                1f
+                            }
+                        RectF(0f, 0f, 1f, fraction.coerceIn(0.45f, 1f))
+                    } else {
+                        baseViewport
+                    }
                 gameView.viewport = viewport
+                touchViewport.value = viewport
+
+                // GLRetroView normalizes touch coords over the whole view, ignoring
+                // the viewport; remap touches through the viewport so bottom-screen
+                // input stays aligned when the video is letterboxed above the pads.
+                gameView.setOnTouchListener { view, event ->
+                    val tv = touchViewport.value
+                    if (tv == null || tv.bottom >= 0.999f) {
+                        false
+                    } else {
+                        val mapped = MotionEvent.obtain(event)
+                        mapped.setLocation(
+                            event.x / tv.width().coerceAtLeast(1e-6f),
+                            (event.y - tv.top * view.height) / tv.height().coerceAtLeast(1e-6f),
+                        )
+                        view.onTouchEvent(mapped)
+                        mapped.recycle()
+                        true
+                    }
+                }
             }
 
             ConstraintLayout(
@@ -224,7 +266,8 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                                         dxFraction = dx / screenPxWidth,
                                         dyFraction = dy / screenPxHeight,
                                     )
-                                },
+                                }
+                                .onGloballyPositioned { leftPadTopPx.value = it.boundsInRoot().top },
                             touchControllerSettings,
                         )
                         rightGamePad?.invoke(
@@ -247,7 +290,8 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                                         dxFraction = dx / screenPxWidth,
                                         dyFraction = dy / screenPxHeight,
                                     )
-                                },
+                                }
+                                .onGloballyPositioned { rightPadTopPx.value = it.boundsInRoot().top },
                             touchControllerSettings,
                         )
 
