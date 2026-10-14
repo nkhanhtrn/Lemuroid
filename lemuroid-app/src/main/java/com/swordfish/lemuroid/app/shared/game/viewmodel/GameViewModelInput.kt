@@ -24,6 +24,7 @@ import com.swordfish.lemuroid.common.kotlin.zipOnKeys
 import com.swordfish.lemuroid.lib.controller.ControllerConfig
 import com.swordfish.lemuroid.lib.library.GameSystem
 import com.swordfish.lemuroid.lib.library.SystemCoreConfig
+import com.swordfish.lemuroid.lib.library.SystemID
 import com.swordfish.libretrodroid.Controller
 import com.swordfish.libretrodroid.GLRetroView
 import com.swordfish.libretrodroid.GLRetroView.Companion.MOTION_SOURCE_ANALOG_LEFT
@@ -305,6 +306,16 @@ class GameViewModelInput(
                 val port = ports(device)
                 val bindKeyCode = bindings(device)[InputKey(keyCode)]?.keyCode ?: keyCode
 
+                // Nintendo-layout physical pads: swap A/B and X/Y so the physical
+                // diamond matches the Xbox-style on-screen layout (A bottom, B right,
+                // X left, Y top) for systems whose touch layout was swapped too.
+                val effectiveKeyCode =
+                    if (system.id == SystemID.NINTENDO_3DS) {
+                        SWAPPED_FACE_BUTTONS[bindKeyCode] ?: bindKeyCode
+                    } else {
+                        bindKeyCode
+                    }
+
                 if (port == 0) {
                     if (bindKeyCode == KeyEvent.KEYCODE_BUTTON_MODE && action == KeyEvent.ACTION_DOWN) {
                         sideEffects.showMenu(tilt, this)
@@ -331,7 +342,7 @@ class GameViewModelInput(
                 }
 
                 port?.let {
-                    retroGameView.retroGameView?.sendKeyEvent(action, bindKeyCode, it)
+                    retroGameView.retroGameView?.sendKeyEvent(action, effectiveKeyCode, it)
                 }
             }
     }
@@ -394,5 +405,15 @@ class GameViewModelInput(
         } catch (e: Exception) {
             Timber.e(e)
         }
+    }
+
+    companion object {
+        private val SWAPPED_FACE_BUTTONS =
+            mapOf(
+                KeyEvent.KEYCODE_BUTTON_A to KeyEvent.KEYCODE_BUTTON_B,
+                KeyEvent.KEYCODE_BUTTON_B to KeyEvent.KEYCODE_BUTTON_A,
+                KeyEvent.KEYCODE_BUTTON_X to KeyEvent.KEYCODE_BUTTON_Y,
+                KeyEvent.KEYCODE_BUTTON_Y to KeyEvent.KEYCODE_BUTTON_X,
+            )
     }
 }
