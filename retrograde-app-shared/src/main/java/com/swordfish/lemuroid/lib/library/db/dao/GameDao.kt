@@ -91,6 +91,12 @@ interface GameDao {
     @Query("SELECT count(*) count, systemId systemId FROM games GROUP BY systemId")
     fun selectSystemsWithCount(): Flow<List<SystemCount>>
 
+    @Query("SELECT * FROM games ORDER BY COALESCE(customName, title) COLLATE NOCASE ASC, id DESC")
+    fun selectAllGames(): Flow<List<Game>>
+
+    @Query("SELECT * FROM games WHERE isFavorite = 1 ORDER BY COALESCE(customName, title) COLLATE NOCASE ASC")
+    fun selectFavoritesAll(): Flow<List<Game>>
+
     @Insert
     fun insert(games: List<Game>): List<Long>
 

@@ -272,8 +272,12 @@ object SerialScanner {
     // search. We decompress the beginning of the image (which contains SYSTEM.CNF with the serial)
     // and run the standard text search on it.
     private fun extractInfoForCSO(openedStream: InputStream): DiskInfo {
-        val decompressed = runCatching { decompressCSOPrefix(openedStream, 64.kiloBytes()) }
-            .getOrNull() ?: return DiskInfo(null, SystemID.PSP)
+        val decompressed =
+            runCatching { decompressCSOPrefix(openedStream, 64.kiloBytes()) }
+                .onFailure { Timber.e(it, "CSO decompression failed") }
+                .getOrNull() ?: return DiskInfo(null, SystemID.PSP)
+
+        Timber.d("CSO decompressed prefix: ${decompressed.size} bytes")
 
         if (decompressed.isEmpty()) {
             return DiskInfo(null, SystemID.PSP)
@@ -329,8 +333,9 @@ object SerialScanner {
             throw IllegalArgumentException("Truncated CSO offset table")
         }
 
-        // Skip the remainder of the offset table.
-        openedStream.skip(((blockCount + 1) * 4 - offsets.size).toLong())
+        // Skip the remainder of the offset table. SAF streams may return partial skips, so we
+        // loop (and drain-read as a fallback) until the requested amount is actually skipped.
+        skipFully(openedStream, (blockCount + 1) * 4L - offsets.size)
 
         val output = java.io.ByteArrayOutputStream(minOf(prefixSize, blocksToRead * blockSize))
         var position = 24L + (blockCount + 1) * 4
@@ -340,16 +345,11 @@ object SerialScanner {
             val end = (leU32(offsets, (i + 1) * 4) and 0x7fffffff) shl align
             if (end <= start) continue
 
-            var toSkip = start - position
-            while (toSkip > 0) {
-                val skipped = openedStream.skip(toSkip)
-                if (skipped <= 0) break
-                toSkip -= skipped
-            }
+            skipFully(openedStream, start - position)
             position = end
 
             val blockBytes = readFully((end - start).toInt())
-            if (blockBytes.isEmpty()) break
+            if (blockBytes.isEmpty()) throw java.io.EOFException("Truncated CSO data")
 
             if (leU32(offsets, i * 4) and 0x80000000L != 0L) {
                 output.write(blockBytes)
@@ -363,6 +363,27 @@ object SerialScanner {
         }
 
         return output.toByteArray()
+    }
+
+    private fun skipFully(
+        openedStream: InputStream,
+        count: Long,
+    ) {
+        var remaining = count
+        val scratch = ByteArray(16.kiloBytes())
+        while (remaining > 0) {
+            val skipped = openedStream.skip(remaining)
+            if (skipped > 0) {
+                remaining -= skipped
+                continue
+            }
+            val read =
+                openedStream.read(scratch, 0, minOf(scratch.size.toLong(), remaining).toInt())
+            if (read <= 0) {
+                throw java.io.EOFException("CSO stream ended while skipping")
+            }
+            remaining -= read
+        }
     }
 
     private fun inflateBlock(

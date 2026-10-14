@@ -5,14 +5,24 @@ import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ElevatedCard
@@ -20,18 +30,33 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import com.swordfish.lemuroid.R
-import com.swordfish.lemuroid.app.mobile.shared.compose.ui.LemuroidGameCard
+import com.swordfish.lemuroid.app.mobile.shared.compose.ui.LemuroidGameImage
 import com.swordfish.lemuroid.app.utils.android.ComposableLifecycle
 import com.swordfish.lemuroid.common.displayDetailsSettingsScreen
 import com.swordfish.lemuroid.lib.library.db.entity.Game
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import kotlin.math.abs
+import kotlinx.coroutines.delay
 
 @Composable
 fun HomeScreen(
@@ -78,9 +103,10 @@ fun HomeScreen(
         },
         { permissionsLauncher.launch(Manifest.permission.RECORD_AUDIO) },
         { viewModel.changeLocalStorageFolder(context) },
-    ) // TODO COMPOSE We need to understand what's going to happen here.
+    )
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun HomeScreen(
     modifier: Modifier = Modifier,
@@ -92,97 +118,194 @@ private fun HomeScreen(
     onEnableMicrophoneClicked: () -> Unit,
     onSetDirectoryClicked: () -> Unit,
 ) {
-    Column(
-        modifier =
-            modifier
-                .verticalScroll(rememberScrollState())
-                .padding(top = 16.dp, bottom = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-    ) {
-        AnimatedVisibility(state.showNoNotificationPermissionCard) {
-            HomeNotification(
-                titleId = R.string.home_notification_title,
-                messageId = R.string.home_notification_message,
-                actionId = R.string.home_notification_action,
-                onAction = onEnableNotificationsClicked,
-            )
+    val columns = state.xmbColumns
+
+    Box(modifier = modifier.fillMaxSize()) {
+        XmbBackground(modifier = Modifier.fillMaxSize())
+
+        Column(modifier = Modifier.fillMaxSize()) {
+            val pagerState = rememberPagerState(pageCount = { columns.size })
+            val currentColumn =
+                columns.getOrNull(pagerState.currentPage)
+
+            Row(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 24.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text =
+                        currentColumn?.let { stringResource(it.titleResId) }
+                            ?: "",
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = Color.White.copy(alpha = 0.92f),
+                    modifier = Modifier.weight(1f),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                XmbClock()
+            }
+
+            HorizontalPager(
+                modifier = Modifier.weight(1f),
+                state = pagerState,
+                beyondViewportPageCount = 1,
+                key = { columns[it].key },
+            ) { page ->
+                XmbColumnPage(
+                    column = columns[page],
+                    onGameClicked = onGameClicked,
+                    onGameLongClick = onGameLongClick,
+                )
+            }
+
+            Column(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState())
+                        .padding(vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                AnimatedVisibility(state.showNoNotificationPermissionCard) {
+                    HomeNotification(
+                        titleId = R.string.home_notification_title,
+                        messageId = R.string.home_notification_message,
+                        actionId = R.string.home_notification_action,
+                        onAction = onEnableNotificationsClicked,
+                    )
+                }
+                AnimatedVisibility(state.showNoGamesCard) {
+                    HomeNotification(
+                        titleId = R.string.home_empty_title,
+                        messageId = R.string.home_empty_message,
+                        actionId = R.string.home_empty_action,
+                        onAction = onSetDirectoryClicked,
+                        enabled = !state.indexInProgress,
+                    )
+                }
+                AnimatedVisibility(state.showNoMicrophonePermissionCard) {
+                    HomeNotification(
+                        titleId = R.string.home_microphone_title,
+                        messageId = R.string.home_microphone_message,
+                        actionId = R.string.home_microphone_action,
+                        onAction = onEnableMicrophoneClicked,
+                    )
+                }
+                AnimatedVisibility(state.showDesmumeDeprecatedCard) {
+                    HomeNotification(
+                        titleId = R.string.home_notification_desmume_deprecated_title,
+                        messageId = R.string.home_notification_desmume_deprecated_message,
+                        actionId = R.string.home_notification_desmume_deprecated_action,
+                        onAction = onOpenCoreSelection,
+                    )
+                }
+            }
         }
-        AnimatedVisibility(state.showNoGamesCard) {
-            HomeNotification(
-                titleId = R.string.home_empty_title,
-                messageId = R.string.home_empty_message,
-                actionId = R.string.home_empty_action,
-                onAction = onSetDirectoryClicked,
-                enabled = !state.indexInProgress,
-            )
-        }
-        AnimatedVisibility(state.showNoMicrophonePermissionCard) {
-            HomeNotification(
-                titleId = R.string.home_microphone_title,
-                messageId = R.string.home_microphone_message,
-                actionId = R.string.home_microphone_action,
-                onAction = onEnableMicrophoneClicked,
-            )
-        }
-        AnimatedVisibility(state.showDesmumeDeprecatedCard) {
-            HomeNotification(
-                titleId = R.string.home_notification_desmume_deprecated_title,
-                messageId = R.string.home_notification_desmume_deprecated_message,
-                actionId = R.string.home_notification_desmume_deprecated_action,
-                onAction = onOpenCoreSelection,
-            )
-        }
-        HomeRow(
-            stringResource(id = R.string.recent),
-            state.recentGames,
-            onGameClicked,
-            onGameLongClick,
-        )
-        HomeRow(
-            stringResource(id = R.string.favorites),
-            state.favoritesGames,
-            onGameClicked,
-            onGameLongClick,
-        )
     }
+}
+
+@Composable
+private fun XmbClock() {
+    val format =
+        remember {
+            SimpleDateFormat("EEE, MMM d   HH:mm", Locale.getDefault())
+        }
+    var time by
+        remember {
+            mutableStateOf(format.format(Date()))
+        }
+
+    LaunchedEffect(Unit) {
+        while (true) {
+            time = format.format(Date())
+            delay(15_000)
+        }
+    }
+
+    Text(
+        text = time,
+        style = MaterialTheme.typography.labelLarge,
+        color = Color.White.copy(alpha = 0.75f),
+    )
 }
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun HomeRow(
-    title: String,
-    games: List<Game>,
+private fun XmbColumnPage(
+    column: HomeViewModel.XmbColumn,
     onGameClicked: (Game) -> Unit,
     onGameLongClick: (Game) -> Unit,
 ) {
-    if (games.isEmpty()) {
-        return
-    }
+    val listState = rememberLazyListState()
 
-    Column(modifier = Modifier.fillMaxWidth()) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.labelMedium,
-            modifier = Modifier.padding(start = 16.dp, end = 16.dp),
-        )
-        LazyRow(
-            modifier =
-                Modifier
-                    .fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
-            contentPadding = PaddingValues(16.dp),
-        ) {
-            items(games.size, key = { games[it].id }) { index ->
-                val game = games[index]
-                LemuroidGameCard(
-                    modifier =
-                        Modifier
-                            .widthIn(0.dp, 144.dp)
-                            .animateItem(),
+    val centerIndex by
+        remember {
+            derivedStateOf {
+                val viewportCenter =
+                    (listState.layoutInfo.viewportEndOffset -
+                        listState.layoutInfo.viewportStartOffset) / 2
+                listState.layoutInfo.visibleItemsInfo
+                    .minByOrNull { abs(it.offset + it.size / 2 - viewportCenter) }
+                    ?.index
+                    ?: 0
+            }
+        }
+
+    LazyColumn(
+        state = listState,
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(vertical = 16.dp),
+    ) {
+        items(column.games.size, key = { column.games[it].id }) { index ->
+            val game = column.games[index]
+            val isCenter = index == centerIndex
+            val scale by animateFloatAsState(if (isCenter) 1f else 0.82f, label = "scale")
+            val alpha by animateFloatAsState(if (isCenter) 1f else 0.55f, label = "alpha")
+
+            Row(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .graphicsLayer {
+                            scaleX = scale
+                            scaleY = scale
+                            this.alpha = alpha
+                        }
+                        .combinedClickable(
+                            onClick = { onGameClicked(game) },
+                            onLongClick = { onGameLongClick(game) },
+                        )
+                        .padding(horizontal = 28.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                LemuroidGameImage(
                     game = game,
-                    onClick = { onGameClicked(game) },
-                    onLongClick = { onGameLongClick(game) },
+                    modifier = Modifier.size(52.dp),
+                    contentScale = ContentScale.Fit,
                 )
+                Spacer(modifier = Modifier.width(20.dp))
+                Column {
+                    Text(
+                        text = game.title,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = Color.White,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    val developer = game.developer
+                    if (!developer.isNullOrBlank()) {
+                        Text(
+                            text = developer,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = Color.White.copy(alpha = 0.5f),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                }
             }
         }
     }

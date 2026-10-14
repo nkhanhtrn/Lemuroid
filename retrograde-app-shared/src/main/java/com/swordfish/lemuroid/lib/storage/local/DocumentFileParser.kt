@@ -80,7 +80,7 @@ object DocumentFileParser {
                 null
             }
 
-        Timber.d("Parsed standard file: $baseStorageFile")
+        Timber.d("Parsed standard file: $baseStorageFile serial=${diskInfo?.serial} system=${diskInfo?.systemID}")
 
         return StorageFile(
             baseStorageFile.name,
