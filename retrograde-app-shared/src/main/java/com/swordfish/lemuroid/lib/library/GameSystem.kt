@@ -1254,7 +1254,6 @@ data class GameSystem(
                                 ),
                             defaultSettings =
                                 listOf(
-                                    CoreVariable("citra_graphics_api", "OpenGL"),
                                     CoreVariable("citra_enable_touch_touchscreen", "enabled"),
                                     CoreVariable("citra_use_disk_shader_cache", "enabled"),
                                 ),
@@ -1396,7 +1395,7 @@ data class GameSystem(
                                     ),
                                 ),
                             statesSupported = false,
-                            supportsLibretroVFS = false,
+                            supportsLibretroVFS = true,
                             supportedOnlyArchitectures = setOf("arm64-v8a"),
                         ),
                     ),
