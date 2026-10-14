@@ -1289,7 +1289,6 @@ data class GameSystem(
                                         R.string.setting_citra_use_acc_geo_shaders,
                                     ),
                                 ),
-                            statesSupported = false,
                             supportsLibretroVFS = true,
                             supportedOnlyArchitectures = setOf("arm64-v8a"),
                         ),
