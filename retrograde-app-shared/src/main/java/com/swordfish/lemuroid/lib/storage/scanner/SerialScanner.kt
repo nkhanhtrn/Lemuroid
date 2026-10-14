@@ -150,6 +150,7 @@ object SerialScanner {
             return when (FileUtils.extractExtension(fileName)) {
                 "pbp" -> extractInfoForPBP(it)
                 "iso", "bin" -> standardExtractInfo(it)
+                "cso" -> extractInfoForCSO(it)
                 "3ds" -> extractInfoFor3DS(it)
                 else -> DiskInfo(null, null)
             }
@@ -265,6 +266,116 @@ object SerialScanner {
             .mapNotNull { serial -> parsePSXSerial(serial) }
             .mapNotNull { serial -> DiskInfo(serial, SystemID.PSP) }
             .firstOrNull() ?: DiskInfo(null, SystemID.PSP)
+    }
+
+    // CSO images are block-wise zlib compressed, so the serial cannot be found with a plain text
+    // search. We decompress the beginning of the image (which contains SYSTEM.CNF with the serial)
+    // and run the standard text search on it.
+    private fun extractInfoForCSO(openedStream: InputStream): DiskInfo {
+        val decompressed = runCatching { decompressCSOPrefix(openedStream, 64.kiloBytes()) }
+            .getOrNull() ?: return DiskInfo(null, SystemID.PSP)
+
+        if (decompressed.isEmpty()) {
+            return DiskInfo(null, SystemID.PSP)
+        }
+
+        return textSearch(PSP_BASE_SERIALS, decompressed.inputStream(), PS_SERIAL_MAX_SIZE, decompressed.size)
+            .mapNotNull { serial -> parsePSXSerial(serial) }
+            .mapNotNull { serial -> DiskInfo(serial, SystemID.PSP) }
+            .firstOrNull() ?: DiskInfo(null, SystemID.PSP)
+    }
+
+    private fun decompressCSOPrefix(
+        openedStream: InputStream,
+        prefixSize: Int,
+    ): ByteArray {
+        fun readFully(size: Int): ByteArray {
+            val result = ByteArray(size)
+            var offset = 0
+            while (offset < size) {
+                val read = openedStream.read(result, offset, size - offset)
+                if (read <= 0) break
+                offset += read
+            }
+            return result.copyOf(offset)
+        }
+
+        fun leU32(bytes: ByteArray, offset: Int): Long {
+            return (bytes[offset].toLong() and 0xFF) or
+                ((bytes[offset + 1].toLong() and 0xFF) shl 8) or
+                ((bytes[offset + 2].toLong() and 0xFF) shl 16) or
+                ((bytes[offset + 3].toLong() and 0xFF) shl 24)
+        }
+
+        val header = readFully(24)
+        if (header.size < 24 || !header.copyOfRange(0, 4).contentEquals("CISO".toByteArray())) {
+            throw IllegalArgumentException("Not a CSO file")
+        }
+
+        val totalBytes = leU32(header, 8) or (leU32(header, 12) shl 32)
+        val blockSize = leU32(header, 16).toInt()
+        val align = header[21].toInt()
+        if (blockSize <= 0 || totalBytes <= 0L || align !in 0..15) {
+            throw IllegalArgumentException("Invalid CSO header")
+        }
+
+        val blockCount = ((totalBytes + blockSize - 1) / blockSize).toInt()
+        val blocksToRead = minOf(blockCount, (prefixSize + blockSize - 1) / blockSize)
+
+        // The offset table is stored right after the header and it is ordered by block index, so
+        // we only need to read the entries for the blocks we are going to decompress.
+        val offsets = readFully((blocksToRead + 1) * 4)
+        if (offsets.size < (blocksToRead + 1) * 4) {
+            throw IllegalArgumentException("Truncated CSO offset table")
+        }
+
+        // Skip the remainder of the offset table.
+        openedStream.skip(((blockCount + 1) * 4 - offsets.size).toLong())
+
+        val output = java.io.ByteArrayOutputStream(minOf(prefixSize, blocksToRead * blockSize))
+        var position = 24L + (blockCount + 1) * 4
+
+        for (i in 0 until blocksToRead) {
+            val start = (leU32(offsets, i * 4) and 0x7fffffff) shl align
+            val end = (leU32(offsets, (i + 1) * 4) and 0x7fffffff) shl align
+            if (end <= start) continue
+
+            var toSkip = start - position
+            while (toSkip > 0) {
+                val skipped = openedStream.skip(toSkip)
+                if (skipped <= 0) break
+                toSkip -= skipped
+            }
+            position = end
+
+            val blockBytes = readFully((end - start).toInt())
+            if (blockBytes.isEmpty()) break
+
+            if (leU32(offsets, i * 4) and 0x80000000L != 0L) {
+                output.write(blockBytes)
+            } else {
+                // Some tools write plain zlib streams, others (e.g. maxcso) write raw deflate.
+                val inflated =
+                    runCatching { inflateBlock(blockBytes, blockSize, nowrap = false) }
+                        .getOrElse { inflateBlock(blockBytes, blockSize, nowrap = true) }
+                output.write(inflated, 0, inflated.size)
+            }
+        }
+
+        return output.toByteArray()
+    }
+
+    private fun inflateBlock(
+        blockBytes: ByteArray,
+        blockSize: Int,
+        nowrap: Boolean,
+    ): ByteArray {
+        val inflater = java.util.zip.Inflater(nowrap)
+        inflater.setInput(blockBytes)
+        val inflated = ByteArray(blockSize)
+        val inflatedSize = inflater.inflate(inflated)
+        inflater.end()
+        return inflated.copyOf(inflatedSize)
     }
 
     private fun extractInfoForPBP(openedStream: InputStream): DiskInfo {
