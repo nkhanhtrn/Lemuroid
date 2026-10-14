@@ -37,6 +37,7 @@ object GameScreenLayout {
             val leftPad = createRefFor(CONSTRAINTS_LEFT_PAD)
             val rightPad = createRefFor(CONSTRAINTS_RIGHT_PAD)
             val gameContainer = createRefFor(CONSTRAINTS_GAME_CONTAINER)
+            val lowerHalf = createGuidelineFromBottom(0.5f)
 
             val gamePadChain = createHorizontalChain(leftPad, rightPad, chainStyle = ChainStyle.SpreadInside)
 
@@ -54,17 +55,15 @@ object GameScreenLayout {
                 absoluteRight.linkTo(parent.absoluteRight)
             }
 
-            // Wrap-content so the measured top edge is the visual top of the
-            // controls; the game viewport shrinks above it (MobileGameScreen).
             constrain(leftPad) {
                 width = Dimension.fillToConstraints
-                height = Dimension.wrapContent
+                top.linkTo(lowerHalf)
                 bottom.linkTo(parent.bottom)
             }
 
             constrain(rightPad) {
                 width = Dimension.fillToConstraints
-                height = Dimension.wrapContent
+                top.linkTo(lowerHalf)
                 bottom.linkTo(parent.bottom)
             }
 
