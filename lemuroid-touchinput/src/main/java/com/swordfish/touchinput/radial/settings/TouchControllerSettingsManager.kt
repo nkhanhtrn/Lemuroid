@@ -33,6 +33,7 @@ class TouchControllerSettingsManager(private val sharedPreferences: SharedPrefer
         val leftOffsetY: Float = 0f,
         val rightOffsetX: Float = 0f,
         val rightOffsetY: Float = 0f,
+        val screenSize: Float = DEFAULT_SCREEN_SIZE,
     )
 
     private fun computeInsetsPaddings(
@@ -127,6 +128,10 @@ class TouchControllerSettingsManager(private val sharedPreferences: SharedPrefer
         const val DEFAULT_ROTATION = 0.0f
         const val DEFAULT_MARGIN_X = 0.0f
         const val DEFAULT_MARGIN_Y = 0.0f
+
+        const val DEFAULT_SCREEN_SIZE = 1.0f
+        const val MIN_SCREEN_SIZE = 0.5f
+        const val MAX_SCREEN_SIZE = 1.0f
 
         const val MAX_ROTATION = 45f
         const val MIN_SCALE = 0.75f
