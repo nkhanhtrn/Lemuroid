@@ -22,6 +22,10 @@
     <string name="close">Close</string>
 
     <string name="game_page_search_suggestion">Search games</string>
+    <string name="game_list_no_results">No games found</string>
+    <string name="game_list_sort_title_az">Title (A–Z)</string>
+    <string name="game_list_sort_title_za">Title (Z–A)</string>
+    <string name="game_list_sort_last_played">Recently played</string>
 
     <string name="settings_category_general">General</string>
     <string name="settings_category_input">Input</string>

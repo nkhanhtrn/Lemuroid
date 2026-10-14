@@ -2,7 +2,9 @@
 <resources>
     <string name="pref_file_harmony_options" translatable="false">harmony_options</string>
 
-    <string name="pref_key_last_save_sync" translatable="false">last_save_sync</string>
+    <string name="pref_key_game_list_layout" translatable="false">game_list_layout</string>
+    <string name="pref_key_game_list_sort" translatable="false">game_list_sort</string>
+
     <string name="pref_key_extenral_folder" translatable="false">external_folder</string>
     <string name="pref_key_legacy_external_folder" translatable="false">legacy_external_folder</string>
 </resources>

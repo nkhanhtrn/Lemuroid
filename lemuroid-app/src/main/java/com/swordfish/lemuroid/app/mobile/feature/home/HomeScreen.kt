@@ -144,12 +144,6 @@ private fun HomeScreen(
             onGameClicked,
             onGameLongClick,
         )
-        HomeRow(
-            stringResource(id = R.string.discover),
-            state.discoveryGames,
-            onGameClicked,
-            onGameLongClick,
-        )
     }
 }
 

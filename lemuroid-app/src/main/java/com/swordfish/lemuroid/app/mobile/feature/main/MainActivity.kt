@@ -253,6 +253,7 @@ class MainActivity : RetrogradeComponentActivity(), BusyActivity {
                                 viewModel(
                                     factory =
                                         GamesViewModel.Factory(
+                                            applicationContext,
                                             retrogradeDb,
                                             MetaSystemID.valueOf(metaSystemId!!),
                                         ),
