@@ -8,10 +8,14 @@ import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -174,17 +178,23 @@ class MainActivity : RetrogradeComponentActivity(), BusyActivity {
 
             Scaffold(
                 topBar = {
-                    MainTopBar(
-                        currentRoute = currentRoute,
-                        navController = navController,
-                        onHelpPressed = onHelpPressed,
-                        mainUIState = mainUIState,
-                        onUpdateQueryString = { mainViewModel.changeQueryString(it) },
-                    )
+                    if (currentRoute?.parent != null) {
+                        MainTopBar(
+                            currentRoute = currentRoute,
+                            navController = navController,
+                            onHelpPressed = onHelpPressed,
+                            mainUIState = mainUIState,
+                            onUpdateQueryString = { mainViewModel.changeQueryString(it) },
+                        )
+                    }
                 },
                 bottomBar = { MainNavigationBar(currentRoute, navController) },
             ) { padding ->
-                NavHost(
+                Column(modifier = Modifier.fillMaxSize()) {
+                    AnimatedVisibility(mainUIState.operationInProgress) {
+                        LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                    }
+                    NavHost(
                     modifier = Modifier.fillMaxSize(),
                     navController = navController,
                     startDestination = MainRoute.HOME.route,
@@ -225,6 +235,7 @@ class MainActivity : RetrogradeComponentActivity(), BusyActivity {
                                     factory = SearchViewModel.Factory(retrogradeDb),
                                 ),
                             searchQuery = mainUIState.searchQuery,
+                            onUpdateQueryString = { mainViewModel.changeQueryString(it) },
                             onGameClick = onGameClick,
                             onGameLongClick = onGameLongClick,
                             onGameFavoriteToggle = onGameFavoriteToggle,
@@ -345,6 +356,7 @@ class MainActivity : RetrogradeComponentActivity(), BusyActivity {
                                 ),
                         )
                     }
+                }
                 }
             }
 
