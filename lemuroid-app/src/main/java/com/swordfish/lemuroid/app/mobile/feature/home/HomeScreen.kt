@@ -260,7 +260,7 @@ private fun XmbColumnPage(
             with(density) { maxHeight.toPx() } / 2f
 
         val centerIndex by
-            remember(pageCenterPx) {
+            remember {
                 derivedStateOf {
                     listState.layoutInfo.visibleItemsInfo
                         .minByOrNull { abs(it.offset + it.size / 2 - pageCenterPx.toInt()) }
@@ -274,9 +274,7 @@ private fun XmbColumnPage(
         // The first layout pass also lands item 0 centered thanks to the
         // content padding above; iterate the correction because item heights
         // (developer subtitle) can shift the center between passes.
-        // Re-run when the page height changes (e.g. notification cards animate
-        // in after first layout) so the frozen first-frame center never sticks.
-        LaunchedEffect(listState, column.key, pageCenterPx) {
+        LaunchedEffect(listState, column.key) {
             suspend fun centerNearestItem() {
                 repeat(3) {
                     val info = listState.layoutInfo
