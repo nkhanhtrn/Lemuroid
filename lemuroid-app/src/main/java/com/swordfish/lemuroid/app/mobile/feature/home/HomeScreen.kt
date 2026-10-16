@@ -61,6 +61,7 @@ import java.util.Locale
 import kotlin.math.abs
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.filter
 
 @Composable
@@ -266,30 +267,22 @@ private fun XmbColumnPage(
 
         // Snap the nearest item back to the vertical center whenever a scroll
         // or fling settles, so the highlighted row always rests mid-screen.
-        // The first layout pass also lands item 0 centered thanks to the
-        // content padding above; iterate the correction because item heights
-        // (developer subtitle) can shift the center between passes.
-        LaunchedEffect(listState, column.key) {
-            suspend fun centerNearestItem() {
-                repeat(3) {
-                    val info = listState.layoutInfo
-                    if (info.totalItemsCount == 0) return
-                    val viewportCenter = (info.viewportEndOffset + info.viewportStartOffset) / 2
-                    val item =
-                        info.visibleItemsInfo.minByOrNull {
-                            abs(it.offset + it.size / 2 - viewportCenter)
-                        } ?: return
-                    val delta = viewportCenter - (item.offset + item.size / 2)
-                    if (abs(delta) <= 2) return
-                    listState.animateScrollBy(delta.toFloat())
-                }
-            }
-
-            centerNearestItem()
+        LaunchedEffect(listState) {
             snapshotFlow { listState.isScrollInProgress }
                 .distinctUntilChanged()
+                .drop(1)
                 .filter { !it }
-                .collect { centerNearestItem() }
+                .collect {
+                    val info = listState.layoutInfo
+                    val item = info.visibleItemsInfo.firstOrNull { it.index == centerIndex }
+                    if (item != null) {
+                        val viewportCenter = (info.viewportEndOffset + info.viewportStartOffset) / 2
+                        val delta = viewportCenter - (item.offset + item.size / 2)
+                        if (abs(delta) > 2) {
+                            listState.animateScrollBy(delta.toFloat())
+                        }
+                    }
+                }
         }
 
         LazyColumn(
