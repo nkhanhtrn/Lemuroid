@@ -46,7 +46,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -252,18 +251,14 @@ private fun XmbColumnPage(
         // centered XMB position instead of stopping hard at the screen edge.
         val centerPadding = (maxHeight / 2 - 34.dp).coerceAtLeast(16.dp)
 
-        // Snap and highlight both target the geometric middle of this page.
-        // LazyListLayoutInfo viewport offsets have version-dependent content
-        // padding semantics, so derive the center from the page height.
-        val density = LocalDensity.current
-        val pageCenterPx =
-            with(density) { maxHeight.toPx() } / 2f
-
         val centerIndex by
             remember {
                 derivedStateOf {
+                    val viewportCenter =
+                        (listState.layoutInfo.viewportEndOffset -
+                            listState.layoutInfo.viewportStartOffset) / 2
                     listState.layoutInfo.visibleItemsInfo
-                        .minByOrNull { abs(it.offset + it.size / 2 - pageCenterPx.toInt()) }
+                        .minByOrNull { abs(it.offset + it.size / 2 - viewportCenter) }
                         ?.index
                         ?: 0
                 }
@@ -279,12 +274,13 @@ private fun XmbColumnPage(
                 repeat(3) {
                     val info = listState.layoutInfo
                     if (info.totalItemsCount == 0) return
+                    val viewportCenter = (info.viewportEndOffset + info.viewportStartOffset) / 2
                     val item =
                         info.visibleItemsInfo.minByOrNull {
-                            abs(it.offset + it.size / 2 - pageCenterPx.toInt())
+                            abs(it.offset + it.size / 2 - viewportCenter)
                         } ?: return
-                    val delta = pageCenterPx - (item.offset + item.size / 2)
-                    if (abs(delta) <= 2f) return
+                    val delta = viewportCenter - (item.offset + item.size / 2)
+                    if (abs(delta) <= 2) return
                     listState.animateScrollBy(delta.toFloat())
                 }
             }
