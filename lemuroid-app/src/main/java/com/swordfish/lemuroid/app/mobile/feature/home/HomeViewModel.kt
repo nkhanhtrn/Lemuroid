@@ -5,14 +5,17 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
 import androidx.core.content.ContextCompat
+import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.swordfish.lemuroid.R
 import com.swordfish.lemuroid.app.shared.library.PendingOperationsMonitor
 import com.swordfish.lemuroid.app.shared.settings.StorageFrameworkPickerLauncher
 import com.swordfish.lemuroid.common.coroutines.combine
 import com.swordfish.lemuroid.lib.core.CoresSelection
 import com.swordfish.lemuroid.lib.library.CoreID
+import com.swordfish.lemuroid.lib.library.GameSystem
 import com.swordfish.lemuroid.lib.library.SystemID
 import com.swordfish.lemuroid.lib.library.db.RetrogradeDatabase
 import com.swordfish.lemuroid.lib.library.db.entity.Game
@@ -51,10 +54,17 @@ class HomeViewModel(
         }
     }
 
+    data class XmbColumn(
+        val key: String,
+        @StringRes
+        val titleResId: Int,
+        val games: List<Game>,
+    )
+
     data class UIState(
         val favoritesGames: List<Game> = emptyList(),
         val recentGames: List<Game> = emptyList(),
-        val discoveryGames: List<Game> = emptyList(),
+        val xmbColumns: List<XmbColumn> = emptyList(),
         val indexInProgress: Boolean = true,
         val showNoNotificationPermissionCard: Boolean = false,
         val showNoMicrophonePermissionCard: Boolean = false,
@@ -106,18 +116,18 @@ class HomeViewModel(
     private fun buildViewState(
         favoritesGames: List<Game>,
         recentGames: List<Game>,
-        discoveryGames: List<Game>,
+        allGames: List<Game>,
         indexInProgress: Boolean,
         notificationsPermissionEnabled: Boolean,
         showMicrophoneCard: Boolean,
         showDesmumeWarning: Boolean,
     ): UIState {
-        val noGames = recentGames.isEmpty() && favoritesGames.isEmpty() && discoveryGames.isEmpty()
+        val noGames = allGames.isEmpty() && recentGames.isEmpty() && favoritesGames.isEmpty()
 
         return UIState(
             favoritesGames = favoritesGames,
             recentGames = recentGames,
-            discoveryGames = discoveryGames,
+            xmbColumns = buildXmbColumns(recentGames, favoritesGames, allGames),
             indexInProgress = indexInProgress,
             showNoNotificationPermissionCard = !notificationsPermissionEnabled,
             showNoMicrophonePermissionCard = showMicrophoneCard,
@@ -126,13 +136,43 @@ class HomeViewModel(
         )
     }
 
+    private fun buildXmbColumns(
+        recentGames: List<Game>,
+        favoritesGames: List<Game>,
+        allGames: List<Game>,
+    ): List<XmbColumn> {
+        val columns = mutableListOf<XmbColumn>()
+
+        if (recentGames.isNotEmpty()) {
+            columns += XmbColumn("recent", R.string.recent, recentGames.take(CAROUSEL_MAX_ITEMS))
+        }
+
+        if (favoritesGames.isNotEmpty()) {
+            columns += XmbColumn("favorites", R.string.favorites, favoritesGames)
+        }
+
+        val gamesBySystem = allGames.groupBy { it.systemId }
+        GameSystem.all()
+            .filter { gamesBySystem.containsKey(it.id.dbname) }
+            .forEach { system ->
+                columns +=
+                    XmbColumn(
+                        system.id.dbname,
+                        system.titleResId,
+                        gamesBySystem[system.id.dbname].orEmpty(),
+                    )
+            }
+
+        return columns
+    }
+
     init {
         viewModelScope.launch {
             val uiStatesFlow =
                 combine(
-                    favoritesGames(retrogradeDb),
+                    favoritesGamesAll(retrogradeDb),
                     recentGames(retrogradeDb),
-                    discoveryGames(retrogradeDb),
+                    allGames(retrogradeDb),
                     indexingInProgress(appContext),
                     notificationsPermissionEnabledState,
                     microphoneNotification(retrogradeDb),
@@ -150,14 +190,14 @@ class HomeViewModel(
     private fun indexingInProgress(appContext: Context) =
         PendingOperationsMonitor(appContext).anyLibraryOperationInProgress()
 
-    private fun discoveryGames(retrogradeDb: RetrogradeDatabase) =
-        retrogradeDb.gameDao().selectFirstNotPlayed(CAROUSEL_MAX_ITEMS)
-
     private fun recentGames(retrogradeDb: RetrogradeDatabase) =
         retrogradeDb.gameDao().selectFirstUnfavoriteRecents(CAROUSEL_MAX_ITEMS)
 
-    private fun favoritesGames(retrogradeDb: RetrogradeDatabase) =
-        retrogradeDb.gameDao().selectFirstFavorites(CAROUSEL_MAX_ITEMS)
+    private fun allGames(retrogradeDb: RetrogradeDatabase) =
+        retrogradeDb.gameDao().selectAllGames()
+
+    private fun favoritesGamesAll(retrogradeDb: RetrogradeDatabase) =
+        retrogradeDb.gameDao().selectFavoritesAll()
 
     private fun dsGamesCount(retrogradeDb: RetrogradeDatabase): Flow<Int> {
         return retrogradeDb.gameDao().selectSystemsWithCount()

@@ -6,6 +6,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.CircularProgressIndicator
@@ -18,6 +19,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.collectAsLazyPagingItems
 import com.swordfish.lemuroid.R
+import com.swordfish.lemuroid.app.mobile.feature.main.MainViewModel
+import com.swordfish.lemuroid.app.mobile.feature.main.LemuroidSearchView
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.LemuroidEmptyView
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.LemuroidGameListRow
 import com.swordfish.lemuroid.lib.library.db.entity.Game
@@ -27,6 +30,7 @@ fun SearchScreen(
     modifier: Modifier = Modifier,
     viewModel: SearchViewModel,
     searchQuery: String,
+    onUpdateQueryString: (String) -> Unit,
     onGameClick: (Game) -> Unit,
     onGameLongClick: (Game) -> Unit,
     onGameFavoriteToggle: (Game, Boolean) -> Unit,
@@ -43,7 +47,13 @@ fun SearchScreen(
         viewModel.queryString.value = searchQuery
     }
 
-    AnimatedContent(
+    Column(modifier = modifier.fillMaxSize()) {
+        LemuroidSearchView(
+            mainUIState = MainViewModel.UiState(searchQuery = searchQuery),
+            onUpdateQueryString = onUpdateQueryString,
+        )
+
+        AnimatedContent(
         targetState = searchState.value,
         label = "SearchContent",
         transitionSpec = { fadeIn() togetherWith fadeOut() },
@@ -70,6 +80,7 @@ fun SearchScreen(
                     onGameFavoriteToggle,
                 )
             }
+        }
         }
     }
 }

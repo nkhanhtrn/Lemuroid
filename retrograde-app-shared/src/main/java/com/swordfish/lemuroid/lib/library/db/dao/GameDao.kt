@@ -67,11 +67,35 @@ interface GameDao {
     @Query("SELECT * FROM games WHERE systemId IN (:systemIds) ORDER BY COALESCE(customName, title) ASC, id DESC")
     fun selectBySystems(systemIds: List<String>): PagingSource<Int, Game>
 
+    @Query("SELECT * FROM games WHERE systemId IN (:systemIds) AND COALESCE(customName, title) LIKE '%' || :query || '%' ORDER BY COALESCE(customName, title) ASC, id DESC")
+    fun selectBySystemsTitleAsc(
+        systemIds: List<String>,
+        query: String,
+    ): PagingSource<Int, Game>
+
+    @Query("SELECT * FROM games WHERE systemId IN (:systemIds) AND COALESCE(customName, title) LIKE '%' || :query || '%' ORDER BY COALESCE(customName, title) DESC, id DESC")
+    fun selectBySystemsTitleDesc(
+        systemIds: List<String>,
+        query: String,
+    ): PagingSource<Int, Game>
+
+    @Query("SELECT * FROM games WHERE systemId IN (:systemIds) AND COALESCE(customName, title) LIKE '%' || :query || '%' ORDER BY lastPlayedAt IS NULL, lastPlayedAt DESC, COALESCE(customName, title) ASC")
+    fun selectBySystemsLastPlayed(
+        systemIds: List<String>,
+        query: String,
+    ): PagingSource<Int, Game>
+
     @Query("SELECT DISTINCT systemId FROM games ORDER BY systemId ASC")
     suspend fun selectSystems(): List<String>
 
     @Query("SELECT count(*) count, systemId systemId FROM games GROUP BY systemId")
     fun selectSystemsWithCount(): Flow<List<SystemCount>>
+
+    @Query("SELECT * FROM games ORDER BY COALESCE(customName, title) COLLATE NOCASE ASC, id DESC")
+    fun selectAllGames(): Flow<List<Game>>
+
+    @Query("SELECT * FROM games WHERE isFavorite = 1 ORDER BY COALESCE(customName, title) COLLATE NOCASE ASC")
+    fun selectFavoritesAll(): Flow<List<Game>>
 
     @Insert
     fun insert(games: List<Game>): List<Long>

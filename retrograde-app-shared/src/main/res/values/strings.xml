@@ -63,7 +63,6 @@
     <string name="setting_wswan_mono_palette">Colorization</string>
     <string name="setting_handy_rot">Display rotation</string>
     <string name="setting_citra_layout_option">Screens layout</string>
-    <string name="setting_citra_swap_screen">Prominent 3DS screen</string>
     <string name="setting_citra_resolution_factor">Resolution scaling</string>
     <string name="setting_citra_use_acc_mul">Accurate shaders multiplication</string>
     <string name="setting_citra_use_acc_geo_shaders">Accurate geometry shaders</string>
@@ -126,34 +125,7 @@
     <string name="value_melonds_mic_input_blow">Simulate blow sounds</string>
 
     <string name="value_citra_layout_option_topbottom">Top - Bottom</string>
-    <string name="value_citra_layout_option_single">Single screen</string>
-    <string name="value_citra_layout_option_largescreen">Large screen, small screen</string>
     <string name="value_citra_layout_option_sidebyside">Left - Right</string>
-
-    <string name="value_citra_swap_screen_top">Top</string>
-    <string name="value_citra_swap_screen_bottom">Bottom</string>
-    <string name="setting_citra_large_screen_proportion">Large screen proportion</string>
-    <string name="value_citra_proportion_1_00">1.00x (equal size)</string>
-    <string name="value_citra_proportion_1_25">1.25x</string>
-    <string name="value_citra_proportion_1_50">1.50x</string>
-    <string name="value_citra_proportion_1_75">1.75x</string>
-    <string name="value_citra_proportion_2_00">2.00x</string>
-    <string name="value_citra_proportion_2_25">2.25x</string>
-    <string name="value_citra_proportion_2_50">2.50x</string>
-    <string name="value_citra_proportion_2_75">2.75x</string>
-    <string name="value_citra_proportion_3_00">3.00x</string>
-    <string name="value_citra_proportion_3_25">3.25x</string>
-    <string name="value_citra_proportion_3_50">3.50x</string>
-    <string name="value_citra_proportion_3_75">3.75x</string>
-    <string name="value_citra_proportion_4_00">4.00x (default)</string>
-    <string name="value_citra_proportion_4_25">4.25x</string>
-    <string name="value_citra_proportion_4_50">4.50x</string>
-    <string name="value_citra_proportion_4_75">4.75x</string>
-    <string name="value_citra_proportion_5_00">5.00x</string>
-    <string name="value_citra_proportion_5_25">5.25x</string>
-    <string name="value_citra_proportion_5_50">5.50x</string>
-    <string name="value_citra_proportion_5_75">5.75x</string>
-    <string name="value_citra_proportion_6_00">6.00x</string>
 
     <string name="value_desmume_screens_layout_topbottom">Top - Bottom</string>
     <string name="value_desmume_screens_layout_leftright">Left - Right</string>

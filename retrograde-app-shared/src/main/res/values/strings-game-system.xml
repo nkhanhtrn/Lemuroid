@@ -69,7 +69,7 @@
     <string name="game_system_title_ws">WonderSwan</string>
     <string name="game_system_title_wsc">WonderSwan Color</string>
     <string name="game_system_title_dos">DOS (Beta)</string>
-    <string name="game_system_title_3ds">Nintendo 3DS (Beta)</string>
+    <string name="game_system_title_3ds">Nintendo 3DS</string>
 
     <string name="game_system_title_arcade">Arcade</string>
 </resources>

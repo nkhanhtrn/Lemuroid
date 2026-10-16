@@ -1254,9 +1254,11 @@ data class GameSystem(
                                 ),
                             defaultSettings =
                                 listOf(
-                                    CoreVariable("citra_graphics_api", "OpenGL"),
-                                    CoreVariable("citra_enable_touch_touchscreen", "enabled"),
-                                    CoreVariable("citra_use_disk_shader_cache", "enabled"),
+                                    CoreVariable("citra_use_acc_mul", "disabled"),
+                                    CoreVariable("citra_touch_touchscreen", "enabled"),
+                                    CoreVariable("citra_mouse_touchscreen", "disabled"),
+                                    CoreVariable("citra_render_touchscreen", "disabled"),
+                                    CoreVariable("citra_use_hw_shader_cache", "disabled"),
                                 ),
                             exposedSettings =
                                 listOf(
@@ -1265,124 +1267,12 @@ data class GameSystem(
                                         R.string.setting_citra_layout_option,
                                         arrayListOf(
                                             ExposedSetting.Value(
-                                                "default",
+                                                "Default Top-Bottom Screen",
                                                 R.string.value_citra_layout_option_topbottom,
                                             ),
                                             ExposedSetting.Value(
-                                                "single_screen",
-                                                R.string.value_citra_layout_option_single,
-                                            ),
-                                            ExposedSetting.Value(
-                                                "large_screen",
-                                                R.string.value_citra_layout_option_largescreen,
-                                            ),
-                                            ExposedSetting.Value(
-                                                "side_by_side",
+                                                "Side by Side",
                                                 R.string.value_citra_layout_option_sidebyside,
-                                            ),
-                                        ),
-                                    ),
-                                    ExposedSetting(
-                                        "citra_swap_screen",
-                                        R.string.setting_citra_swap_screen,
-                                        arrayListOf(
-                                            ExposedSetting.Value(
-                                                "Top",
-                                                R.string.value_citra_swap_screen_top,
-                                            ),
-                                            ExposedSetting.Value(
-                                                "Bottom",
-                                                R.string.value_citra_swap_screen_bottom,
-                                            ),
-                                        ),
-                                    ),
-                                    ExposedSetting(
-                                        "citra_large_screen_proportion",
-                                        R.string.setting_citra_large_screen_proportion,
-                                        arrayListOf(
-                                            ExposedSetting.Value(
-                                                "1.00",
-                                                R.string.value_citra_proportion_1_00,
-                                            ),
-                                            ExposedSetting.Value(
-                                                "1.25",
-                                                R.string.value_citra_proportion_1_25,
-                                            ),
-                                            ExposedSetting.Value(
-                                                "1.50",
-                                                R.string.value_citra_proportion_1_50,
-                                            ),
-                                            ExposedSetting.Value(
-                                                "1.75",
-                                                R.string.value_citra_proportion_1_75,
-                                            ),
-                                            ExposedSetting.Value(
-                                                "2.00",
-                                                R.string.value_citra_proportion_2_00,
-                                            ),
-                                            ExposedSetting.Value(
-                                                "2.25",
-                                                R.string.value_citra_proportion_2_25,
-                                            ),
-                                            ExposedSetting.Value(
-                                                "2.50",
-                                                R.string.value_citra_proportion_2_50,
-                                            ),
-                                            ExposedSetting.Value(
-                                                "2.75",
-                                                R.string.value_citra_proportion_2_75,
-                                            ),
-                                            ExposedSetting.Value(
-                                                "3.00",
-                                                R.string.value_citra_proportion_3_00,
-                                            ),
-                                            ExposedSetting.Value(
-                                                "3.25",
-                                                R.string.value_citra_proportion_3_25,
-                                            ),
-                                            ExposedSetting.Value(
-                                                "3.50",
-                                                R.string.value_citra_proportion_3_50,
-                                            ),
-                                            ExposedSetting.Value(
-                                                "3.75",
-                                                R.string.value_citra_proportion_3_75,
-                                            ),
-                                            ExposedSetting.Value(
-                                                "4.00",
-                                                R.string.value_citra_proportion_4_00,
-                                            ),
-                                            ExposedSetting.Value(
-                                                "4.25",
-                                                R.string.value_citra_proportion_4_25,
-                                            ),
-                                            ExposedSetting.Value(
-                                                "4.50",
-                                                R.string.value_citra_proportion_4_50,
-                                            ),
-                                            ExposedSetting.Value(
-                                                "4.75",
-                                                R.string.value_citra_proportion_4_75,
-                                            ),
-                                            ExposedSetting.Value(
-                                                "5.00",
-                                                R.string.value_citra_proportion_5_00,
-                                            ),
-                                            ExposedSetting.Value(
-                                                "5.25",
-                                                R.string.value_citra_proportion_5_25,
-                                            ),
-                                            ExposedSetting.Value(
-                                                "5.50",
-                                                R.string.value_citra_proportion_5_50,
-                                            ),
-                                            ExposedSetting.Value(
-                                                "5.75",
-                                                R.string.value_citra_proportion_5_75,
-                                            ),
-                                            ExposedSetting.Value(
-                                                "6.00",
-                                                R.string.value_citra_proportion_6_00,
                                             ),
                                         ),
                                     ),
@@ -1391,12 +1281,15 @@ data class GameSystem(
                                         R.string.setting_citra_resolution_factor,
                                     ),
                                     ExposedSetting(
-                                        "citra_shaders_accurate_mul",
+                                        "citra_use_acc_mul",
                                         R.string.setting_citra_use_acc_mul,
                                     ),
+                                    ExposedSetting(
+                                        "citra_use_acc_geo_shaders",
+                                        R.string.setting_citra_use_acc_geo_shaders,
+                                    ),
                                 ),
-                            statesSupported = false,
-                            supportsLibretroVFS = false,
+                            supportsLibretroVFS = true,
                             supportedOnlyArchitectures = setOf("arm64-v8a"),
                         ),
                     ),

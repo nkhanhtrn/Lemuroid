@@ -154,21 +154,11 @@ fun LemuroidTopBarActions(
                 )
             }
         }
-        if (route.showBottomNavigation) {
-            IconButton(
-                onClick = { navController.navigate(MainRoute.SETTINGS.route) },
-            ) {
-                Icon(
-                    Icons.Outlined.Settings,
-                    stringResource(R.string.settings),
-                )
-            }
-        }
     }
 }
 
 @Composable
-private fun LemuroidSearchView(
+fun LemuroidSearchView(
     mainUIState: MainViewModel.UiState,
     onUpdateQueryString: (String) -> Unit,
 ) {

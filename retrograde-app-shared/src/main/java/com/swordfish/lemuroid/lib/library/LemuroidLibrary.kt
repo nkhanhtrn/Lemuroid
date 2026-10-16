@@ -97,7 +97,19 @@ class LemuroidLibrary(
         val entries = batch.map { fetchEntriesFromDatabase(it) }
 
         val existingEntries = entries.filterIsInstance<ScanEntry.GameFile>()
-        handleExistingEntries(existingEntries, startedAtMs)
+
+        // Games which were indexed without a cover might have failed metadata extraction when
+        // their format was not supported by the scanner (e.g. CSO files). Retry those.
+        val (retryEntries, completeEntries) =
+            existingEntries.partition { it.game.coverFrontUrl == null }
+
+        handleExistingEntries(completeEntries, startedAtMs)
+
+        val retriedEntries =
+            retryEntries.map { buildEntryFromMetadata(it.file, provider, gameMetadata, startedAtMs) }
+
+        handleRetriedEntries(retryEntries, retriedEntries, startedAtMs)
+        updateDataFiles(completeEntries + retryEntries, startedAtMs)
 
         val newEntries =
             entries.filterIsInstance<ScanEntry.File>()
@@ -129,6 +141,30 @@ class LemuroidLibrary(
     ) {
         updateGames(entries, startedAtMs)
         updateDataFiles(entries, startedAtMs)
+    }
+
+    private fun handleRetriedEntries(
+        oldEntries: List<ScanEntry.GameFile>,
+        newEntries: List<ScanEntry>,
+        startedAtMs: Long,
+    ) {
+        val updatedGames =
+            oldEntries.zip(newEntries).mapNotNull { (old, new) ->
+                when (new) {
+                    is ScanEntry.GameFile ->
+                        new.game.copy(
+                            id = old.game.id,
+                            isFavorite = old.game.isFavorite,
+                            lastPlayedAt = old.game.lastPlayedAt,
+                            customName = old.game.customName,
+                            customCoverUri = old.game.customCoverUri,
+                            lastIndexedAt = startedAtMs,
+                        )
+                    is ScanEntry.File -> old.game.copy(lastIndexedAt = startedAtMs)
+                }
+            }
+
+        retrogradedb.gameDao().update(updatedGames)
     }
 
     private fun updateGames(

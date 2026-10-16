@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.ContentScale
 import com.swordfish.lemuroid.lib.library.db.entity.Game
 
 @Composable
@@ -29,8 +30,10 @@ fun LemuroidGameCard(
                         onLongClick = onLongClick,
                     ),
         ) {
-            LemuroidGameImage(game = game)
-            LemuroidGameTexts(game = game)
+            LemuroidGameImage(
+                game = game,
+                contentScale = ContentScale.Fit,
+            )
         }
     }
 }
