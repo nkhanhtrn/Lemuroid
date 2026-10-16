@@ -8,10 +8,8 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -39,7 +37,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -60,9 +57,6 @@ import java.util.Date
 import java.util.Locale
 import kotlin.math.abs
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.drop
-import kotlinx.coroutines.flow.filter
 
 @Composable
 fun HomeScreen(
@@ -247,49 +241,24 @@ private fun XmbColumnPage(
 ) {
     val listState = rememberLazyListState()
 
-    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-        // Half-viewport padding lets the first and last rows scroll into the
-        // centered XMB position instead of stopping hard at the screen edge.
-        val centerPadding = (maxHeight / 2 - 34.dp).coerceAtLeast(16.dp)
-
-        val centerIndex by
-            remember {
-                derivedStateOf {
-                    val viewportCenter =
-                        (listState.layoutInfo.viewportEndOffset -
-                            listState.layoutInfo.viewportStartOffset) / 2
-                    listState.layoutInfo.visibleItemsInfo
-                        .minByOrNull { abs(it.offset + it.size / 2 - viewportCenter) }
-                        ?.index
-                        ?: 0
-                }
+    val centerIndex by
+        remember {
+            derivedStateOf {
+                val viewportCenter =
+                    (listState.layoutInfo.viewportEndOffset -
+                        listState.layoutInfo.viewportStartOffset) / 2
+                listState.layoutInfo.visibleItemsInfo
+                    .minByOrNull { abs(it.offset + it.size / 2 - viewportCenter) }
+                    ?.index
+                    ?: 0
             }
-
-        // Snap the nearest item back to the vertical center whenever a scroll
-        // or fling settles, so the highlighted row always rests mid-screen.
-        LaunchedEffect(listState) {
-            snapshotFlow { listState.isScrollInProgress }
-                .distinctUntilChanged()
-                .drop(1)
-                .filter { !it }
-                .collect {
-                    val info = listState.layoutInfo
-                    val item = info.visibleItemsInfo.firstOrNull { it.index == centerIndex }
-                    if (item != null) {
-                        val viewportCenter = (info.viewportEndOffset + info.viewportStartOffset) / 2
-                        val delta = viewportCenter - (item.offset + item.size / 2)
-                        if (abs(delta) > 2) {
-                            listState.animateScrollBy(delta.toFloat())
-                        }
-                    }
-                }
         }
 
-        LazyColumn(
-            state = listState,
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(vertical = centerPadding),
-        ) {
+    LazyColumn(
+        state = listState,
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(vertical = 16.dp),
+    ) {
         items(column.games.size, key = { column.games[it].id }) { index ->
             val game = column.games[index]
             val isCenter = index == centerIndex
@@ -338,7 +307,6 @@ private fun XmbColumnPage(
                     }
                 }
             }
-        }
         }
     }
 }
