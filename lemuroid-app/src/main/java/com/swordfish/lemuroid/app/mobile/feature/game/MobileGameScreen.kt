@@ -167,6 +167,22 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                 gameView.viewport = viewport
             }
 
+            // Dual-screen stacked video is pillarboxed on wide displays; stretch it
+            // horizontally so the screens use the full screen width. Touch input is
+            // inverse-transformed by the framework, so the bottom screen stays accurate.
+            LaunchedEffect(fullPos) {
+                val gameView = viewModel.retroGameView.retroGameViewFlow()
+                if (fullPos == null) return@LaunchedEffect
+                val videoAspect = 5f / 6f // 400x480: two stacked 3DS screens
+                val screenAspect = fullPos.width.toFloat() / fullPos.height
+                gameView.scaleX =
+                    if (viewModel.isDualScreenStacked) {
+                        (screenAspect / videoAspect).coerceAtLeast(1f)
+                    } else {
+                        1f
+                    }
+            }
+
             ConstraintLayout(
                 modifier = Modifier.fillMaxSize(),
                 constraintSet =

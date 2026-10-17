@@ -28,6 +28,7 @@ import com.swordfish.lemuroid.lib.controller.ControllerConfig
 import com.swordfish.lemuroid.lib.core.CoreVariablesManager
 import com.swordfish.lemuroid.lib.game.GameLoader
 import com.swordfish.lemuroid.lib.library.GameSystem
+import com.swordfish.lemuroid.lib.library.SystemID
 import com.swordfish.lemuroid.lib.library.SystemCoreConfig
 import com.swordfish.lemuroid.lib.library.db.entity.Game
 import com.swordfish.lemuroid.lib.saves.SavesManager
@@ -232,6 +233,11 @@ class BaseGameScreenViewModel(
 
     val isTouchScreenSystem: Boolean
         get() = system.hasTouchScreen
+
+    /** Dual-screen systems whose stacked video is pillarboxed on wide displays. The
+     *  game view is horizontally stretched to fill the screen for these. */
+    val isDualScreenStacked: Boolean
+        get() = system.id == SystemID.NINTENDO_3DS
 
     fun isTouchControllerVisible(): Flow<Boolean> {
         return touchControls.isTouchControllerVisible()
