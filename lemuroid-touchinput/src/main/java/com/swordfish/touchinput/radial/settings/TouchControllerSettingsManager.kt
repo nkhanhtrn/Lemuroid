@@ -70,7 +70,7 @@ class TouchControllerSettingsManager(private val sharedPreferences: SharedPrefer
                 rotation = DEFAULT_ROTATION,
                 marginX = horizontalPadding.value / MAX_MARGINS,
                 marginY = verticalPadding.value / MAX_MARGINS,
-            )
+            ).withControllerDefaults(touchControllerID, orientation)
         val settingsKey = getPreferenceString(touchControllerID, orientation)
         val cachedStateFlow =
             cachedSettings.getOrPut(settingsKey) {
@@ -133,6 +133,36 @@ class TouchControllerSettingsManager(private val sharedPreferences: SharedPrefer
         const val MAX_SCALE = 1.5f
 
         const val MAX_MARGINS = 96f
+    }
+
+    /** Per-controller default overrides. The 3DS layout renders two screens, so the
+     *  gamepad starts at minimum size, pushed to the edges (portrait) or below the
+     *  screens (landscape) instead of the one-size-fits-all global default. Values
+     *  captured from a hand-tuned layout. */
+    private fun Settings.withControllerDefaults(
+        id: TouchControllerID,
+        orientation: Orientation,
+    ): Settings {
+        if (id != TouchControllerID.NINTENDO_3DS) return this
+        return when (orientation) {
+            Orientation.PORTRAIT ->
+                copy(
+                    scale = 0.0f,
+                    leftOffsetX = -0.193f,
+                    leftOffsetY = 0.018f,
+                    rightOffsetX = 0.192f,
+                    rightOffsetY = 0.011f,
+                )
+
+            Orientation.LANDSCAPE ->
+                copy(
+                    scale = 0.0f,
+                    leftOffsetX = 0.014f,
+                    leftOffsetY = 0.247f,
+                    rightOffsetX = -0.008f,
+                    rightOffsetY = 0.291f,
+                )
+        }
     }
 
     private fun getPreferenceString(
