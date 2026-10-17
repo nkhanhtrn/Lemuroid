@@ -147,7 +147,7 @@ class TouchControllerSettingsManager(private val sharedPreferences: SharedPrefer
         return when (orientation) {
             Orientation.PORTRAIT ->
                 copy(
-                    scale = 0.0f,
+                    scale = 0.25f,
                     leftOffsetX = -0.193f,
                     leftOffsetY = 0.018f,
                     rightOffsetX = 0.192f,
@@ -156,7 +156,7 @@ class TouchControllerSettingsManager(private val sharedPreferences: SharedPrefer
 
             Orientation.LANDSCAPE ->
                 copy(
-                    scale = 0.0f,
+                    scale = 0.25f,
                     leftOffsetX = 0.014f,
                     leftOffsetY = 0.247f,
                     rightOffsetX = -0.008f,
@@ -169,6 +169,14 @@ class TouchControllerSettingsManager(private val sharedPreferences: SharedPrefer
         controllerID: TouchControllerID,
         orientation: Orientation,
     ): String {
-        return "touch_controller_settings_${controllerID}_${orientation.ordinal}"
+        // Versioned key for 3DS: previously stored (too small) hand-tuned layouts
+        // must not override the new defaults, so they are left behind unread.
+        val version =
+            if (controllerID == TouchControllerID.NINTENDO_3DS) {
+                "v2_"
+            } else {
+                ""
+            }
+        return "touch_controller_settings_${version}${controllerID}_${orientation.ordinal}"
     }
 }
